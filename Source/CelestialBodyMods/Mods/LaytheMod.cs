@@ -22,7 +22,7 @@ namespace NewKerbol
 			//new heightmap
 			var height = pqs.GetPQSMod<PQSMod_VertexHeightMap> ();
 			height.heightMap = MapSO.CreateInstance<MapSO> ();
-			var heightMap = Utils.LoadTexture ("laythe_height.png");
+			var heightMap = Utils.LoadTexture ("Height/Laythe_height.png");
 			height.heightMap.CreateMap (MapSO.MapDepth.Greyscale, heightMap);
 			GameObject.Destroy (heightMap);
 
@@ -38,13 +38,8 @@ namespace NewKerbol
 
 			mr.material = new Material (Shader.Find ("Terrain/Scaled Planet (Simple)"));
 			mr.material.mainTexture = Utils.LoadTexture ("Scaled/Laythe_color.png");
-			//mr.material.SetTexture ("_rimColorRamp", Utils.LoadTexture ("Scaled/Rims/Rim_lime.png"));
 
 			var mats = scaled.renderer.materials;
-			foreach (var m in mats)
-			{
-				Log (m.name);
-			}
 			var newMats = new List<Material> ();
 
 			var emissiveScaledShader = Utils.LoadShader ("Shaders/Compiled-EmissiveScaled.shader");
@@ -68,8 +63,8 @@ namespace NewKerbol
 		}
 		protected override void SetupBody (CelestialBody body)
 		{
-			body.orbit.semiMajorAxis = 10000000;
-			body.orbit.eccentricity = 0;
+			body.orbit.semiMajorAxis = 13500000;
+			body.orbit.eccentricity = 0.0005;
 			body.orbit.inclination = 0;
 			body.orbitDriver.orbitColor = Utils.Color (90, 220, 15);
 

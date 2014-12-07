@@ -41,7 +41,7 @@ namespace NewKerbol
 			var height = pqs.GetPQSMod<PQSMod_VertexHeightMap> ();
 			height.heightMap = MapSO.CreateInstance<MapSO> ();
 			height.heightMapDeformity = 20000;
-			var heightMap = Utils.LoadTexture ("moho_height.png");
+			var heightMap = Utils.LoadTexture ("Height/Moho_height.png");
 			height.heightMap.CreateMap (MapSO.MapDepth.Greyscale, heightMap);
 			GameObject.Destroy (heightMap);
 

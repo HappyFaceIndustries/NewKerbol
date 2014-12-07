@@ -5,181 +5,6 @@ using UnityEngine;
 
 namespace NewKerbol
 {
-	[KSPAddon(KSPAddon.Startup.MainMenu, false)]
-	internal class CelestialBodyModInit : MonoBehaviour
-	{
-		//equations
-		double GetNewPeriod(CelestialBody body)
-		{
-            return 2 * Math.PI * Math.Sqrt(Math.Pow(body.orbit.semiMajorAxis, 2) / 6.674E-11 * body.orbit.semiMajorAxis / (body.Mass + body.referenceBody.Mass));
-        }
-        double GetNewSOI(CelestialBody body)
-        {
-            return body.orbit.semiMajorAxis * Math.Pow(body.Mass / body.orbit.referenceBody.Mass, 0.4);
-        }
-        double GetNewHillSphere(CelestialBody body)
-        {
-            return body.orbit.semiMajorAxis * (1.0 - body.orbit.eccentricity) * Math.Pow(body.Mass / body.orbit.referenceBody.Mass, 1 / 3);
-        }
-
-		static bool finished = false;
-		void Start()
-		{
-			if (!NewKerbolConfig.ModEnabled)
-			{
-				DestroyImmediate (this);
-				return;
-			}
-
-			if (!finished)
-			{
-				Init ();
-				finished = true;
-			}
-		}
-
-		internal static void AddModule(string partName, string name)
-		{
-			var part = PartLoader.LoadedPartsList.Find(p => p.name == partName);
-			try
-			{
-				part.partPrefab.AddModule (name);
-			}
-			catch {}
-		}
-
-		List<CelestialBodyMod> Mods = new List<CelestialBodyMod> ();
-
-		private void Init()
-		{
-			Utils.Log ("Init starting...");
-
-			foreach (var part in PartLoader.LoadedPartsList)
-			{
-				AddModule (part.name, "ModuleLaytheLight");
-			}
-			AddModule ("kerbalEVA", "ModuleEVALaytheZombie");
-
-			foreach (var t in ScaledSpace.Instance.scaledSpaceTransforms) 
-			{
-				if (t.name == "Jool")
-				{
-					Utils.Log ("Found JoolMesh");
-					CelestialBodyMod.JoolMesh = t.gameObject.GetComponent<MeshFilter> ().mesh;
-				}
-			}
-
-			//disable scatter: temporary until I can write a custom scatter pqsmod
-			GameSettings.PLANET_SCATTER = false;
-
-			//goes though all types to setup
-			foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
-			{
-				if (type.BaseType == typeof(CelestialBodyMod))
-				{
-					string targetString = "";
-					CelestialBody target;
-
-					bool targetFound = false;
-					var attributes = Attribute.GetCustomAttributes (type);
-					foreach (var attr in attributes)
-					{
-						if (attr is CelestialBodyTarget)
-						{
-							targetString = (attr as CelestialBodyTarget).target;
-							targetFound = true;
-						}
-					}
-					if (targetFound == false)
-					{
-						Utils.LogWarning ("Target attribute not found: " + type.Name);
-						continue;
-					}
-
-					target = Utils.GetCelestialBody (targetString);
-					if (target == null)
-					{
-						Utils.LogWarning ("Target attribute found, but the target did not exsist: " + type.Name);
-						continue;
-					}
-
-					var mod = (CelestialBodyMod)Activator.CreateInstance (type);
-					mod.Target = target;
-					Mods.Add (mod);
-				}
-			}
-
-			foreach (var mod in Mods)
-			{
-				mod.Start ();
-			}
-
-			//export
-			ConfigNode exportNode = Utils.LoadConfig ("PluginData/Export.cfg");
-			foreach (var mod in Mods)
-			{
-				if(exportNode.HasNode(mod.Target.bodyName))
-				{
-					var node = exportNode.GetNode (mod.Target.bodyName);
-					var pqs = mod.Target.pqsController;
-
-					int width = 1024;
-					double maxHeight = 10000.0;
-					bool hasOcean = false;
-					double oceanHeight = 0.0;
-					Color oceanColor = Color.blue;
-
-					node.TryGetValue ("width", ref width);
-					node.TryGetValue ("maxHeight", ref maxHeight);
-					node.TryGetValue ("hasOcean", ref hasOcean);
-					node.TryGetValue ("oceanHeight", ref oceanHeight);
-					node.TryGetValue ("oceanColor", ref oceanColor);
-
-					var maps = pqs.CreateMaps (width, maxHeight, hasOcean, oceanHeight, oceanColor);
-
-					Utils.SaveTexturePNG ("export/" + mod.Target.bodyName + "_color", maps [0]);
-					Utils.SaveTexturePNG ("export/" + mod.Target.bodyName + "_bump", maps [1]);
-				}
-			}
-
-			//orbit calcs
-			foreach (var body in FlightGlobals.Bodies)
-			{
-				if (body.flightGlobalsIndex != 0)
-				{
-					body.sphereOfInfluence = GetNewSOI (body);
-					body.hillSphere = GetNewHillSphere (body);
-					body.orbit.period = GetNewPeriod (body);
-
-					body.orbit.meanAnomaly = body.orbit.meanAnomalyAtEpoch;
-					body.orbit.orbitPercent = body.orbit.meanAnomalyAtEpoch / (Math.PI * 2);
-					body.orbit.ObTAtEpoch = body.orbit.orbitPercent * body.orbit.period;
-				}
-			}
-
-			Utils.Log ("Rearranging orbiting bodies");
-			foreach (var body in FlightGlobals.Bodies)
-			{
-				if (body.flightGlobalsIndex != 0)
-				{
-					if (!body.referenceBody.orbitingBodies.Contains (body))
-						body.referenceBody.orbitingBodies.Add (body);
-				}
-			}
-			foreach (var body in FlightGlobals.Bodies)
-			{
-				var orbitingBodies = new List<CelestialBody> (body.orbitingBodies);
-				foreach (var orbiting in orbitingBodies)
-				{
-					if (orbiting.referenceBody != body)
-						body.orbitingBodies.Remove (orbiting);
-				}
-			}
-
-			Utils.Log ("Init finished!");
-		}
-	}
-
 	public class CelestialBodyMod
 	{ 
 		public CelestialBody Target = null;
@@ -260,6 +85,17 @@ namespace NewKerbol
 
 			scaled.transform.localScale = (Vector3.one * newScale) * origScale;
 			Log ("Recalculation of mesh complete!");
+		}
+
+		public void RescaleMesh(Mesh mesh)
+		{
+			Log ("Rescaling mesh: " + mesh.name);
+
+			double newRadius = Target.Radius;
+			float scale = (float)(newRadius / origRadius);
+			Utils.ScaleVerts (mesh, scale);
+
+			Log ("Rescaling of mesh complete!");
 		}
 
 		//Logging

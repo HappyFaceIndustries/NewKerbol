@@ -5,8 +5,8 @@ using Random = UnityEngine.Random;
 
 namespace NewKerbol
 {
-	[KSPAddon(KSPAddon.Startup.Flight, false)]
-	public class EveEffectController : MonoBehaviour
+	[EffectControllerScenes(true, false, false)]
+	public class EveEffectController : EffectController
 	{
 		//lightning
 		public static bool LightningEnabled = true;
@@ -16,7 +16,7 @@ namespace NewKerbol
 		public float Lightning_MaxStrength = 1f;
 		public float Lightning_MinSoundOffset = 0.1f;
 		public float Lightning_MaxSoundOffset = 4f;
-		public double Lightning_MinAltitude = 25000;
+		public double Lightning_MinAltitude = 35000;
 //		public static AudioClip Lightning_AudioClip1 = null;
 //		public static AudioClip Lightning_AudioClip2 = null;
 //		public static AudioClip Lightning_AudioClip3 = null;
@@ -29,7 +29,7 @@ namespace NewKerbol
 
 		//wind
 		public float Wind_MaxForce = 10f;
-		public float Wind_ChuteTearThreshold = 0.8f;
+		public float Wind_ChuteTearThreshold = 0.7f;
 		public float Wind_TimeMultiplier = 30f;
 
 		void Start()
@@ -73,7 +73,7 @@ namespace NewKerbol
 			nextStrikeStrength = this.NextLightningStrength ();
 			nextStrikeOffset = this.NextLightningOffset ();
 
-			NewKerbolConfig.Settings.TryGetValue ("MaximumWindForce", ref Wind_MaxForce);
+			Wind_MaxForce = NewKerbolConfig.MaxWindStrength;
 		}
 
 		void LateUpdate()
@@ -126,26 +126,44 @@ namespace NewKerbol
 									part.rb.AddForce (dir * strength * Wind_MaxForce);
 								}
 
-								//cut chutes above a certain wind strength
-								if (part.Modules.Contains ("ModuleParachute"))
+								//only cut chutes if the settings say so
+								if(NewKerbolConfig.DoParachutesCut)
 								{
-									var parachute = part.Modules ["ModuleParachute"] as ModuleParachute;
-									if (strength >= Wind_ChuteTearThreshold && parachute.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
+									//cut chutes above a certain wind strength
+									if (part.Modules.Contains ("ModuleParachute"))
 									{
-										float rand = UnityEngine.Random.Range (1f, 1000f);
-										if (rand < 1.5f)
+										var parachute = part.Modules ["ModuleParachute"] as ModuleParachute;
+										if (strength >= Wind_ChuteTearThreshold && parachute.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
 										{
-											parachute.CutParachute ();
+											float rand = UnityEngine.Random.Range (1f, 1000f);
+											if (rand < 5f)
+											{
+												parachute.CutParachute ();
 
-											FlightLogger.eventLog.Add ("[" + Utils.FormatTime (vessel.missionTime) + "]: The parachutes on " + part.partInfo.name + " were lost due to high wind speeds.");
+												FlightLogger.eventLog.Add ("[" + Utils.FormatTime (vessel.missionTime) + "]: The parachutes on " + part.partInfo.name + " were lost due to high wind speeds.");
+											}
+										}
+										if (parachute.deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
+										{
+											float rand = UnityEngine.Random.Range (1f, 1000f);
+											if (rand < 2f)
+											{
+												parachute.CutParachute ();
+												FlightLogger.eventLog.Add ("[" + Utils.FormatTime (vessel.missionTime) + "]: The parachutes on " + part.partInfo.name + " were lost due to high wind speeds.");
+											}
 										}
 									}
-									if (parachute.deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
+
+									//same(ish) as above, but for realchutes! :D
+									if (part.Modules.Contains ("RealChuteModule"))
 									{
+										var module = part.Modules ["RealChuteModule"];
+										var methodInfo = module.GetType ().GetMethod ("GUICut");
+
 										float rand = UnityEngine.Random.Range (1f, 1000f);
-										if (rand < 2f)
+										if (rand < 2f && vess.altitude < 4250)
 										{
-											parachute.CutParachute ();
+											methodInfo.Invoke (module, new object[]{ });
 											FlightLogger.eventLog.Add ("[" + Utils.FormatTime (vessel.missionTime) + "]: The parachutes on " + part.partInfo.name + " were lost due to high wind speeds.");
 										}
 									}

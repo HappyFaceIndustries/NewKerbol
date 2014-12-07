@@ -14,9 +14,9 @@ namespace NewKerbol
 	{
 		protected override void SetupBody (CelestialBody body)
 		{
-			body.orbit.semiMajorAxis = 20000000;
-			body.orbit.eccentricity = 0.005;
-			body.orbit.inclination = 1.3;
+			body.orbit.semiMajorAxis = 46000000;
+			body.orbit.eccentricity = 0.0005;
+			body.orbit.inclination = 4.3;
 			body.orbit.referenceBody = Utils.GetCelestialBody ("Jool");
 		}
 

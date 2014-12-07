@@ -20,7 +20,7 @@ namespace NewKerbol
 			body.orbit.inclination = 0;
 			body.orbit.referenceBody = Utils.GetCelestialBody ("Duna");
 			body.Radius = 90000;
-			body.GeeASL = 0.075;
+			body.UpdateGeeASL (0.075);
 		}
 
 		protected override void SetupScaled (GameObject scaled)

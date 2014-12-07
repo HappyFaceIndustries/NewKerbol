@@ -26,5 +26,19 @@ namespace NewKerbol
 			return mods.ToArray ();
 		}
 	}
+
+	public static class CelestialBodyExtensions
+	{
+		public static void UpdateGeeASL(this CelestialBody body, double gee)
+		{
+			body.GeeASL = gee;
+
+			//from realsolarsystem, used to calculate gravParameter and Mass from Radius and GeeASL
+			double rsq = body.Radius * body.Radius;
+			body.gMagnitudeAtCenter = body.GeeASL * 9.81 * rsq;
+			body.gravParameter = body.gMagnitudeAtCenter;
+			body.Mass = body.gravParameter * (1 / 6.674E-11);
+		}
+	}
 }
 

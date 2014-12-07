@@ -17,57 +17,63 @@ namespace NewKerbol
 			body.orbit.eccentricity = 0.09;
 			body.orbit.inclination = 5.5;
 			body.orbit.referenceBody = Utils.GetCelestialBody ("Sun");
-			body.orbitDriver.orbitColor = Utils.Color (92, 92, 92);
+
+			if (SpaceKraken)
+			{
+				body.orbitDriver.orbitColor = Utils.Color (92, 92, 92);
+			}
+			else
+			{
+				body.orbitDriver.orbitColor = Utils.Color (195, 177, 171);
+			}
 		}
 
 		protected override void SetupScaled (GameObject scaled)
 		{
 			var mr = scaled.GetComponent<MeshRenderer> ();
 
-			mr.material.mainTexture = Utils.LoadTexture ("Scaled/Bop_color.png");
+			if(SpaceKraken)
+				mr.material.mainTexture = Utils.LoadTexture ("Scaled/Kraken_color.png");
 
 			this.RecalculateScaledMesh (scaled, Target.pqsController, Target);
 		}
 
-		//if true, use the BuildKraken method
-		bool BuildTextures = false;
+		//if true, use the kraken
+		bool SpaceKraken = false;
 		protected override void OnStart ()
 		{
-			if (!NewKerbolConfig.Settings.TryGetValue ("BuildKrakenTextures", ref BuildTextures))
-				BuildTextures = false;
+			if (!NewKerbolConfig.Settings.TryGetValue ("UseSpaceKraken", ref SpaceKraken))
+				SpaceKraken = false;
 		}
 
 		protected override void SetupPQS (PQS pqs)
 		{
-			//disable the special craters
-			var decals = pqs.GetPQSMods<PQSMod_MapDecal> ();
-			foreach (var decal in decals)
-			{
-				decal.modEnabled = false;
-			}
-			var flattens = pqs.GetPQSMods<PQSMod_MapDecal> ();
-			foreach (var flatten in flattens)
-			{
-				flatten.modEnabled = false;
-			}
-
-			//disable the heightmap, scatter, and colormap
-			var scatter = pqs.GetPQSMod<PQSLandControl> ();
-			scatter.modEnabled = false;
-			var heightNoise = pqs.GetPQSMod<PQSMod_VertexHeightNoise> ();
-			heightNoise.modEnabled = false;
-
-			//collect gameobjects
-			var _Color = pqs.transform.FindChild ("_Color").gameObject;
-			var _Height = pqs.transform.FindChild ("_Height").gameObject;
-
 			//MUA HA HA HA...
-			if (BuildTextures)
+			if (SpaceKraken)
 			{
-				BuildKraken (pqs);
-			}
-			else
-			{
+				//disable the special craters
+				var decals = pqs.GetPQSMods<PQSMod_MapDecal> ();
+				foreach (var decal in decals)
+				{
+					decal.modEnabled = false;
+				}
+				var flattens = pqs.GetPQSMods<PQSMod_MapDecal> ();
+				foreach (var flatten in flattens)
+				{
+					flatten.modEnabled = false;
+				}
+
+				//disable the heightmap, scatter, and colormap
+				var scatter = pqs.GetPQSMod<PQSLandControl> ();
+				scatter.modEnabled = false;
+				var heightNoise = pqs.GetPQSMod<PQSMod_VertexHeightNoise> ();
+				heightNoise.modEnabled = false;
+
+				//collect gameobjects
+				var _Color = pqs.transform.FindChild ("_Color").gameObject;
+				var _Height = pqs.transform.FindChild ("_Height").gameObject;
+
+
 				var simplexColor = pqs.GetPQSMod<PQSMod_VertexSimplexNoiseColor> ();
 				var simplex = pqs.GetPQSMod<PQSMod_VertexSimplexHeightAbsolute> ();
 
@@ -84,7 +90,7 @@ namespace NewKerbol
 				simplex.OnSetup ();
 
 				var height = _Height.AddComponent<PQSMod_VertexHeightMap> ();
-				height.heightMap = CreateMapSO (Utils.LoadTexture ("bop_height.png"));
+				height.heightMap = CreateMapSO (Utils.LoadTexture ("Height/Kraken_height.png"));
 				height.heightMapDeformity = 25000;
 				height.heightMapOffset = 50.0;
 				height.scaleDeformityByRadius = false;
@@ -94,15 +100,20 @@ namespace NewKerbol
 				height.OnSetup ();
 
 				var color = _Height.AddComponent<PQSMod_VertexColorMap> ();
-				color.vertexColorMap = CreateColorMapSO (Utils.LoadTexture ("Scaled/Bop_color.png"));
+				color.vertexColorMap = CreateColorMapSO (Utils.LoadTexture ("Scaled/Kraken_color.png"));
 				color.modEnabled = true;
 				color.order = 200;
 				color.sphere = pqs;
 				color.OnSetup ();
+
+				Log ("THE KRAKEN HAS RISEN! >:D");
+			}
+			else
+			{
+				Log ("The kraken decided to sleep in today... :'(");
 			}
 
 			pqs.RebuildSphere ();
-			Log ("THE KRAKEN HAS RISEN! >:D");
 		}
 
 		//used to generate the texture

@@ -20,7 +20,7 @@ namespace NewKerbol
 			body.orbitDriver.orbitColor = Utils.Color (130, 130, 130);
 
 			body.Radius = 35000;
-			body.GeeASL = 0.04;
+			body.UpdateGeeASL (0.04);
 		}
 
 		protected override void SetupScaled (GameObject scaled)

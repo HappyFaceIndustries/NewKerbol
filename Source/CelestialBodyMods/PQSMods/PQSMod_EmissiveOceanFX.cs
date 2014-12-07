@@ -34,10 +34,10 @@ namespace NewKerbol
 		}
 
 		int counter = 0;
-		public static int framesPerFrame = 6;
+		public static int framesPerFrame = 0;
 		public override void OnUpdateFinished ()
 		{
-			if (willWork) 
+			if (willWork && framesPerFrame > 0) 
 			{
 				if (counter <= 0)
 				{

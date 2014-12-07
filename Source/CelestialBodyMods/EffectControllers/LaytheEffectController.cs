@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace NewKerbol
 {
-	[KSPAddon(KSPAddon.Startup.Flight, false)]
-	public class LaytheEffectController : MonoBehaviour
+	[EffectControllerScenes(true, false, false)]
+	public class LaytheEffectController : EffectController
 	{
 		static Shader EmissiveQuadShader = null;
 
@@ -27,9 +27,6 @@ namespace NewKerbol
 				DestroyImmediate (this);
 				return;
 			}
-
-			NewKerbolConfig.Settings.TryGetValue ("ZombificationRate", ref ModuleEVALaytheZombie.ZombificationRate);
-
 			foreach (var material in Resources.FindObjectsOfTypeAll<Material>())
 			{
 				if (material.name == "mat_eyes01" && KerbalEyes == null)
@@ -47,7 +44,7 @@ namespace NewKerbol
 			}
 			//reuse the laythe textures, they seem to work well enough
 			if (GreenVeins == null)
-				GreenVeins = Utils.LoadTexture ("laythe_height.png");
+				GreenVeins = Utils.LoadTexture ("Height/Laythe_height.png");
 			if (GreenHead == null)
 				GreenHead = Utils.LoadTexture ("Scaled/Laythe_bump.png");
 
@@ -86,22 +83,22 @@ namespace NewKerbol
 		}
 
 		//debug gui for emissive ocean effects
-		void Update()
-		{
-			if (Input.GetKey (KeyCode.LeftAlt) && Input.GetKey (KeyCode.L) && Input.GetKeyDown (KeyCode.E))
-			{
-				open = !open;
-			}
-		}
-		bool open = false;
-		void OnGUI()
-		{
-			if (open)
-			{
-				GUI.Label (new Rect (300f, 250f, 300f, 30f), "Laythe Ocean FX Speed: ");
-				PQSMod_EmissiveOceanFX.framesPerFrame = (int)GUI.HorizontalSlider (new Rect (300f, 300f, 300f, 30f), (float)PQSMod_EmissiveOceanFX.framesPerFrame, 1f, 100f);
-			}
-		}
+//		void Update()
+//		{
+//			if (Input.GetKey (KeyCode.LeftAlt) && Input.GetKey (KeyCode.L) && Input.GetKeyDown (KeyCode.E))
+//			{
+//				open = !open;
+//			}
+//		}
+//		bool open = false;
+//		void OnGUI()
+//		{
+//			if (open)
+//			{
+//				GUI.Label (new Rect (300f, 250f, 300f, 30f), "Laythe Ocean FX Speed: ");
+//				PQSMod_EmissiveOceanFX.framesPerFrame = (int)GUI.HorizontalSlider (new Rect (300f, 300f, 300f, 30f), (float)PQSMod_EmissiveOceanFX.framesPerFrame, 1f, 100f);
+//			}
+//		}
 
 		//thanks to TextureReplacer for some of this code
 		public static void ChangeKerbalMaterials(Component component, Material eyeMaterial, Material pupilMaterial, Material headMaterial)
@@ -146,11 +143,10 @@ namespace NewKerbol
 
 		kerbalExpressionSystem exSystem = null;
 
-		//yes capital letter
-		public static float ZombificationRate = 1f;
-
 		[KSPField(guiActive = true, guiName = "Zombification", guiUnits = "%", isPersistant = true)]
 		public float ZombificationProgress = 0f;
+		[KSPField(guiActive = true, guiName = "Zombification Rate", isPersistant = false)]
+		public float ZombificationRate = 1f;
 
 		public override void OnStart (StartState state)
 		{
@@ -175,52 +171,52 @@ namespace NewKerbol
 			}
 		}
 
-		//no capital letter
-		float zombificationRate = 1f;
-		bool isZombie = false;
+		[KSPField(isPersistant = true, guiActive = false)]
+		public bool isZombie = false;
 		
-		public void LateUpdate()
+		public override void OnUpdate ()
 		{
-			if (HighLogic.LoadedSceneIsFlight)
+			if (vessel.loaded && vessel.mainBody.bodyName == "Laythe" && vessel.altitude < 15000.0)
 			{
-				if (vessel.mainBody.bodyName == "Laythe" && vessel.altitude < 15000.0)
+				//set rate to go twice as fast on the ground
+				if (part.GroundContact)
 				{
-					//set rate to go twice as fast on the ground
-					if (part.GroundContact)
-					{
-						zombificationRate = 2f * ZombificationRate;
-					}
-					else
-						zombificationRate = 1f * ZombificationRate;
+					ZombificationRate = 2f * NewKerbolConfig.ZombificationRate;
+				}
+				else if (part.Splashed)
+				{
+					ZombificationRate = 3f * NewKerbolConfig.ZombificationRate;
+				}
+				else
+					ZombificationRate = 1f * NewKerbolConfig.ZombificationRate;
 
-					//apply effets of zombification
-					if (ZombificationProgress >= 100f)
+				//apply effets of zombification
+				if (ZombificationProgress >= 100f)
+				{
+					ZombificationProgress = 100f;
+					if(!isZombie)
 					{
-						ZombificationProgress = 100f;
-						if(!isZombie)
-						{
-							ScreenMessages.PostScreenMessage (new ScreenMessage("<color=red>" + KerbalName + " has is now a zombie!</color>", 10f, ScreenMessageStyle.UPPER_CENTER));
-							FlightLogger.eventLog.Add ("[" + Utils.FormatTime(vessel.missionTime) + "]: " + KerbalName + " was zombified while on EVA.");
-							LaytheEffectController.ChangeKerbalMaterials (part, LaytheEffectController.GlowKerbalEyes, LaytheEffectController.GlowKerbalPupils, LaytheEffectController.GlowKerbalHead);
-							isZombie = true;
-						}
+						ScreenMessages.PostScreenMessage (new ScreenMessage("<color=red>" + KerbalName + " has is now a zombie!</color>", 10f, ScreenMessageStyle.UPPER_CENTER));
+						FlightLogger.eventLog.Add ("[" + Utils.FormatTime(vessel.missionTime) + "]: " + KerbalName + " was zombified while on EVA.");
+						LaytheEffectController.ChangeKerbalMaterials (part, LaytheEffectController.GlowKerbalEyes, LaytheEffectController.GlowKerbalPupils, LaytheEffectController.GlowKerbalHead);
+						isZombie = true;
 					}
-					else
-						ZombificationProgress += ZombificationRate * TimeWarp.deltaTime;
 				}
+				else
+					ZombificationProgress += ZombificationRate * TimeWarp.deltaTime;
+			}
 
-				if (isZombie && exSystem != null)
-				{
-					exSystem.wheeLevel = 100f;
-					exSystem.panicLevel = 0f;
-					exSystem.fearFactor = 0f;
-				}
-				else if(exSystem != null)
-				{
-					exSystem.wheeLevel = 0f;
-					exSystem.panicLevel = 100f;
-					exSystem.fearFactor = 100f;
-				}
+			if (isZombie && exSystem != null)
+			{
+				exSystem.wheeLevel = 100f;
+				exSystem.panicLevel = 0f;
+				exSystem.fearFactor = 0f;
+			}
+			else if(exSystem != null)
+			{
+				exSystem.wheeLevel = 0f;
+				exSystem.panicLevel = 100f;
+				exSystem.fearFactor = 100f;
 			}
 		}
 	}

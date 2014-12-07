@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace NewKerbol
 {
-	[KSPAddon(KSPAddon.Startup.Flight, false)]
-	public class AeroEffectController : MonoBehaviour
+	[EffectControllerScenes(true, false, false)]
+	public class AeroEffectController : EffectController
 	{
 		//static things
 		static AeroFXState defaultReentryState;

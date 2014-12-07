@@ -34,11 +34,11 @@ namespace NewKerbol
 			body.atmosphericAmbientColor = Utils.Color (54, 50, 41);
 
 			body.orbitDriver.orbitColor = Utils.Color (235, 171, 74);
-			body.orbit.semiMajorAxis = 12500000000;
+			body.orbit.semiMajorAxis = 13500000000;
 			body.orbit.eccentricity = 0.04;
 			body.orbit.inclination = 0.005;
 
-			body.GeeASL = 1.1;
+			body.UpdateGeeASL (1.1);
 
 			//new aeroFX: longer tail, brighter, more wobble
 			var mach = AeroEffectController.GetNewMachEffect ();
@@ -99,7 +99,7 @@ namespace NewKerbol
 
 			height.heightMap = MapSO.CreateInstance<MapSO> ();
 
-			var heightMap = Utils.LoadTexture ("eve_height.png");
+			var heightMap = Utils.LoadTexture ("Height/Eve_height.png");
 			height.heightMap.CreateMap (MapSO.MapDepth.Greyscale, heightMap);
 			GameObject.Destroy (heightMap);
 

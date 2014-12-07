@@ -33,7 +33,7 @@ namespace NewKerbol
 			body.maxAtmosphereAltitude = 25000f;
 			body.atmosphereScaleHeight = 2.5;
 			body.useLegacyAtmosphere = true;
-			body.GeeASL = 0.29;
+			body.UpdateGeeASL (0.29);
 		}
 
 		protected override void SetupPQS(PQS pqs)
@@ -45,7 +45,7 @@ namespace NewKerbol
 			var height = pqs.GetPQSMod<PQSMod_VertexHeightMap> ();
 			height.heightMap = MapSO.CreateInstance<MapSO> ();
 
-			var heightMap = Utils.LoadTexture ("duna_height.png");
+			var heightMap = Utils.LoadTexture ("Height/Duna_height.png");
 			height.heightMap.CreateMap (MapSO.MapDepth.Greyscale, heightMap);
 			height.scaleDeformityByRadius = false;
 			height.heightMapDeformity = 8000.0;
